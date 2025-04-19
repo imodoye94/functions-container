@@ -10,7 +10,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "automerge": "^2.2.8",
+    "@automerge/automerge": "^2.2.8",
     "express": "^4.21.2"
   }
 }
