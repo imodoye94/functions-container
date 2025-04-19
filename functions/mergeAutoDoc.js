@@ -1,6 +1,6 @@
 /* functions/mergeAutoDoc.js */
 
-const Automerge = require('automerge');
+const Automerge = require('@automerge/automerge');
 
 /**
  * Expects { doc1, doc2 } where each is a base64 string
