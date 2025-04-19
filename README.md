@@ -9,3 +9,26 @@
   docker network create mediverse
   ```
 - Then you declare `mediverse` as an external network in all services that you want to connect to these functions so they can call them locally across the docker network (n8n & supabase-db importantly)
+- An example yaml will be
+  ```yaml
+ # network declared as external here
+  networks:
+  default:
+    external:
+      name: shared_net
+# services now register themselves to that network as follows in their respective compose.yml files
+services:
+  functions:
+    image: our‑functions‑service
+    networks:
+      - default
+  supabase-db:
+    image: our‑db
+    networks:
+      - default
+  n8n-service:
+    image: our‑n8n-service
+    networks:
+      - default
+
+  ```
