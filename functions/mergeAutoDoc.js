@@ -10,10 +10,8 @@ const dmp                   = new diff_match_patch();
 module.exports = async function mergeAutoDoc({ existing_doc, changes }) {
   if (typeof existing_doc !== 'string' || typeof changes !== 'object')
     throw new Error('Bad body');
-  
-  let doc = Automerge.load(Buffer.from(existing_doc, 'base64'));
 
-  console.log(changes);
+  let doc = Automerge.load(Buffer.from(existing_doc, 'base64'));
 
   doc = Automerge.change(doc, d => {
     for (const [k, v] of Object.entries(changes)) {
