@@ -1,6 +1,6 @@
 /* functions/generateAutoDoc.js */
 
-const Automerge = require('automerge');
+const Automerge = require('@automerge/automerge');
 
 /**
  * Given a flat JSON payload of key→value pairs,
