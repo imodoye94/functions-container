@@ -3,26 +3,32 @@
 const Automerge = require('@automerge/automerge');
 
 /**
- * Expects { doc1, doc2 } where each is a base64 string
- * Returns { doc: "<base64‑encoded‑merged‑blob>" }
+ * Expects:
+ *   { existing_doc: "<base64>", changes: { "a.b": 42, ... } }
+ * Returns:
+ *   { doc: "<base64‑updated>" }
  */
-module.exports = async function mergeAutoDoc({ doc1, doc2 }) {
-  if (typeof doc1 !== 'string' || typeof doc2 !== 'string') {
-    throw new Error('Missing or invalid doc1/doc2 in request body');
+module.exports = async function mergeAutoDoc({ existing_doc, changes }) {
+  if (typeof existing_doc !== 'string' || typeof changes !== 'object') {
+    throw new Error('Bad request body: need existing_doc (b64) & changes (obj)');
   }
 
-  // 1) Decode base64 → Uint8Array
-  const bytes1 = Buffer.from(doc1, 'base64');
-  const bytes2 = Buffer.from(doc2, 'base64');
+  // 1) Load the current Automerge document
+  let doc = Automerge.load(Buffer.from(existing_doc, 'base64'));
 
-  // 2) Rehydrate Automerge documents
-  const a = Automerge.load(bytes1);
-  const b = Automerge.load(bytes2);
+  // 2) Apply each flattened key
+  doc = Automerge.change(doc, d => {
+    for (const [flatKey, value] of Object.entries(changes)) {
+      const path = flatKey.split('.');
+      let ref = d;
+      for (let i = 0; i < path.length - 1; i++) {
+        if (!(path[i] in ref)) ref[path[i]] = {};      // make intermediate maps
+        ref = ref[path[i]];
+      }
+      ref[path[path.length - 1]] = value;              // set leaf
+    }
+  });
 
-  // 3) Merge & serialize
-  const merged = Automerge.merge(a, b);
-  const saved  = Automerge.save(merged);
-  const mergedBase64 = Buffer.from(saved).toString('base64');
-
-  return { doc: mergedBase64 };
+  // 3) Serialize → base64
+  return { doc: Buffer.from(Automerge.save(doc)).toString('base64') };
 };
