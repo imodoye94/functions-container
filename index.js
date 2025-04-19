@@ -4,10 +4,9 @@ const path    = require('path');
 
 const app = express();
 
-/* 1) Use Express’s built‑in JSON parser */
 app.use(express.json());
 
-/* 2) Auto‑mount all functions in /functions as POST /<name> */
+/* 1) Auto‑mount all functions in /functions as POST /<name> */
 fs.readdirSync(path.join(__dirname, 'functions'))
   .filter(fn => fn.endsWith('.js'))
   .forEach(fn => {
@@ -24,7 +23,7 @@ fs.readdirSync(path.join(__dirname, 'functions'))
     });
   });
 
-/* 3) (Optional) Health check endpoint */
+/* 2) Health check endpoint */
 app.get('/healthz', (_req, res) => res.sendStatus(200));
 
 /* 4) Start the server */
