@@ -1,6 +1,6 @@
 /* functions/explodeAutoDoc.js */
 
-const Automerge = require('automerge');
+const Automerge = require('@automerge/automerge');
 
 /**
  * Expects { doc } where doc is a base64‑encoded CRDT blob.
