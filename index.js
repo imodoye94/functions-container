@@ -1,17 +1,17 @@
-// index.js
-const express    = require('express');
-const bodyParser = require('body-parser');
-const fs         = require('fs');
-const path       = require('path');
+const express = require('express');
+const fs      = require('fs');
+const path    = require('path');
 
 const app = express();
-app.use(bodyParser.json());
 
-// auto‑mount all fns in /functions as POST /<name>
+/* 1) Use Express’s built‑in JSON parser */
+app.use(express.json());
+
+/* 2) Auto‑mount all functions in /functions as POST /<name> */
 fs.readdirSync(path.join(__dirname, 'functions'))
   .filter(fn => fn.endsWith('.js'))
   .forEach(fn => {
-    const name = fn.replace(/\.js$/, '');
+    const name    = fn.replace(/\.js$/, '');
     const handler = require(`./functions/${fn}`);
     app.post(`/${name}`, async (req, res) => {
       try {
@@ -19,10 +19,14 @@ fs.readdirSync(path.join(__dirname, 'functions'))
         res.json(out);
       } catch (err) {
         console.error(name, err);
-        res.status(500).json({error: err.message});
+        res.status(500).json({ error: err.message });
       }
     });
   });
 
+/* 3) (Optional) Health check endpoint */
+app.get('/healthz', (_req, res) => res.sendStatus(200));
+
+/* 4) Start the server */
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Listening on ${PORT}`));
+app.listen(PORT, () => console.log(`Functions container listening on port ${PORT}`));
