@@ -26,6 +26,6 @@ fs.readdirSync(path.join(__dirname, 'functions'))
 /* 2) Health check endpoint */
 app.get('/healthz', (_req, res) => res.sendStatus(200));
 
-/* 4) Start the server */
+/* 3) Start the server */
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`Functions container listening on port ${PORT}`));
