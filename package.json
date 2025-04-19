@@ -11,6 +11,6 @@
   },
   "dependencies": {
     "automerge": "^2.2.8",
-    "express": "^4.18.2"
+    "express": "^4.21.2"
   }
 }
