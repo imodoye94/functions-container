@@ -6,48 +6,58 @@ const dmp                     = new diff_match_patch();
 
 /**
  * Body: { existing_doc:<b64>, changes:{...} }
- * Recognises values that start with "RT:" as rich‑text fields.
+ * Rich‑text columns arrive with KEYS that begin "RT:".
  */
 module.exports = async function mergeAutoDoc({ existing_doc, changes }) {
+  if (typeof existing_doc !== 'string' || typeof changes !== 'object') {
+    throw new Error('Bad request body');
+  }
+
   let doc = Automerge.load(Buffer.from(existing_doc, 'base64'));
 
   doc = Automerge.change(doc, d => {
-    for (const [flatKey, rawVal] of Object.entries(changes)) {
-      const isRT = typeof rawVal === 'string' && rawVal.startsWith('RT:');
-      const val  = isRT ? rawVal.slice(3) : rawVal;              // strip prefix
-      const path = flatKey.split('.');
-      let ref = d;
+    for (const [flatKey, val] of Object.entries(changes)) {
+
+      /* ───────── detect rich‑text by key prefix ───────── */
+      const isRT   = flatKey.startsWith('RT:');
+      const path   = (isRT ? flatKey.slice(3) : flatKey).split('.');
+      let   ref    = d;
+
       for (let i = 0; i < path.length - 1; i++) {
         if (!(path[i] in ref)) ref[path[i]] = {};
         ref = ref[path[i]];
       }
       const leaf = path[path.length - 1];
 
+      /* ───────── rich‑text merge via splice ops ───────── */
       if (isRT) {
-        /* ----- rich‑text merge via splice ops ----- */
+        const newStr = (val ?? '').toString();         // coerce null → ''
         if (!(ref[leaf] instanceof Automerge.Text)) {
-          // First time we see this column → seed it
           ref[leaf] = new Automerge.Text();
-          ref[leaf].insertAt(0, ...val);
+          ref[leaf].insertAt(0, ...newStr);
         } else {
-          const oldStr = ref[leaf].toString();
-          const patches = dmp.patch_make(oldStr, val);
-          let cursor = 0;
-          patches.forEach(patch => {
-            patch.diffs.forEach(([op, text]) => {
-              if (op === diff_match_patch.DIFF_EQUAL) {
-                cursor += text.length;
-              } else if (op === diff_match_patch.DIFF_DELETE) {
-                ref[leaf].deleteAt(cursor, text.length);
-              } else if (op === diff_match_patch.DIFF_INSERT) {
-                ref[leaf].insertAt(cursor, ...text);
-                cursor += text.length;
-              }
+          const oldStr  = ref[leaf].toString();
+          if (oldStr !== newStr) {
+            const patches = dmp.patch_make(oldStr, newStr);
+            let cursor = 0;
+            patches.forEach(patch => {
+              patch.diffs.forEach(([op, text]) => {
+                if (op === diff_match_patch.DIFF_EQUAL) {
+                  cursor += text.length;
+                } else if (op === diff_match_patch.DIFF_DELETE) {
+                  ref[leaf].deleteAt(cursor, text.length);
+                } else if (op === diff_match_patch.DIFF_INSERT) {
+                  ref[leaf].insertAt(cursor, ...text);
+                  cursor += text.length;
+                }
+              });
             });
-          });
+          }
         }
-      } else {
-        /* ----- scalar key: simple assignment (LWW) ----- */
+      }
+
+      /* ───────── plain scalar (LWW) ───────── */
+      else {
         ref[leaf] = val;
       }
     }
