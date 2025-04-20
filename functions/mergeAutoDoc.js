@@ -1,12 +1,7 @@
-/* functions/mergeAutoDoc.js */
-
 const Automerge            = require('@automerge/automerge');
 const { diff_match_patch } = require('diff-match-patch');
 const dmp                   = new diff_match_patch();
 
-/**
- * POST body: { existing_doc: <b64>, changes: { ... } }
- */
 module.exports = async function mergeAutoDoc({ existing_doc, changes }) {
   if (typeof existing_doc !== 'string' || typeof changes !== 'object')
     throw new Error('Bad body');
@@ -15,49 +10,46 @@ module.exports = async function mergeAutoDoc({ existing_doc, changes }) {
 
   doc = Automerge.change(doc, d => {
     for (const [k, v] of Object.entries(changes)) {
+
+      /* ── detect rich‑text by key ── */
       const isRT = k.startsWith('RT:');
-      const key  = isRT ? k.slice(3) : k;        // real column name
-      const path = key.split('.');
-      let ref = d;
+      const flat = isRT ? k.slice(3) : k;            // strip RT:
+      const path = flat.split('.');
+      let   ref  = d;                                // navigate/create
+
       for (let i = 0; i < path.length - 1; i++) {
         if (!(path[i] in ref)) ref[path[i]] = {};
         ref = ref[path[i]];
       }
       const leaf = path[path.length - 1];
 
-      /* ---------- rich‑text column ---------- */
+      /* ── rich‑text splice merge ── */
       if (isRT) {
         const newStr = (v ?? '').toString();
         if (!(ref[leaf] instanceof Automerge.Text)) {
           ref[leaf] = new Automerge.Text(newStr);
-          continue;
-        }
+        } else if (ref[leaf].toString() !== newStr) {
+          const diffs = dmp.diff_main(ref[leaf].toString(), newStr);
+          dmp.diff_cleanupEfficiency(diffs);
 
-        /* diff old vs new and convert to splices */
-        const oldStr = ref[leaf].toString();
-        if (oldStr === newStr) continue;         // no actual change
-
-        const diffs = dmp.diff_main(oldStr, newStr);
-        dmp.diff_cleanupEfficiency(diffs);
-
-        let cursor = 0;
-        for (const [op, text] of diffs) {
-          if (!text) continue;
-          if (op === 0) {                        // EQUAL
-            cursor += text.length;
-          } else if (op === -1) {                // DELETE
-            ref[leaf].deleteAt(cursor, text.length);
-          } else if (op === 1) {                 // INSERT
-            ref[leaf].insertAt(cursor, ...text);
-            cursor += text.length;
+          let cursor = 0;
+          for (const [op, txt] of diffs) {
+            if (!txt) continue;
+            if (op === 0) cursor += txt.length;          // equal
+            if (op === -1) ref[leaf].deleteAt(cursor, txt.length);
+            if (op === 1)  { ref[leaf].insertAt(cursor, ...txt); cursor += txt.length; }
           }
         }
+
+        /* clean up any accidental duplicate top‑level key */
+        if (flat.startsWith('payload.') && d.content !== undefined) {
+          delete d.content;
+        }
+        continue;
       }
 
-      /* ---------- scalar column ---------- */
-      else {
-        ref[leaf] = v;
-      }
+      /* ── scalar LWW ── */
+      ref[leaf] = v;
     }
   });
 
