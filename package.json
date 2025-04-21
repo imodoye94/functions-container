@@ -10,8 +10,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "@automerge/automerge": "^2.2.8",
-    "diff-match-patch": "^1.0.5",
+    "yjs": "^13.6.24",
     "express": "^4.21.2"
   }
 }
