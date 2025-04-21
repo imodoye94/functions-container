@@ -1,6 +1,6 @@
 import express from 'express';
-import mergeYdocHandler from './mergeYdoc.js';
-import explodeYdocHandler from './explodeYdoc.js';
+import mergeYdocHandler from './functions/mergeYdoc.js';
+import explodeYdocHandler from './functions/explodeYdoc.js';
 
 const app = express();
 app.use(express.json());
