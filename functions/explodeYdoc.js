@@ -1,11 +1,11 @@
-import * as Y from 'yjs';
+const Y = require('yjs');
 
 /**
  * Handler for POST /explodeYdoc
  * Expects JSON body: { base64: string }
  * Returns: { fullState: Record<string, any> }
  */
-export default function explodeYdocHandler(req, res) {
+module.exports = function explodeYdocHandler(req, res) {
   try {
     const { base64 } = req.body;
     if (typeof base64 !== 'string') {
@@ -30,4 +30,4 @@ export default function explodeYdocHandler(req, res) {
     console.error('explodeYdoc error:', err);
     res.status(500).json({ error: 'Failed to explode Ydoc' });
   }
-}
+};
