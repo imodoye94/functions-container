@@ -1,11 +1,11 @@
-import * as Y from 'yjs';
+const Y = require('yjs');
 
 /**
  * Handler for POST /mergeYdoc
  * Expects JSON body: { id: string, patch: Record<string, any>, currentBase64?: string }
  * Returns: { mergedBase64: string }
  */
-export default async function mergeYdocHandler(req, res) {
+module.exports = async function mergeYdocHandler(req, res) {
   try {
     const { id, patch, currentBase64 } = req.body;
     if (typeof id !== 'string' || typeof patch !== 'object') {
@@ -35,4 +35,4 @@ export default async function mergeYdocHandler(req, res) {
     console.error('mergeYdoc error:', err);
     res.status(500).json({ error: 'Failed to merge Ydoc' });
   }
-}
+};
